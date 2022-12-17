@@ -39,7 +39,7 @@ static char *show_binary(int width, int n) {
 }
 
 static void println_binary(int width, int n) {
-    uart1_printf("%s\n", show_binary(width, n));
+  uart1_printf("%s\n", show_binary(width, n));
 }
 
 // elementary automation rule 30
@@ -83,7 +83,7 @@ static void task1(void *args __attribute__((unused))) {
     gpio_toggle(GPIOC, GPIO13);
     // ensure it's correct width
     board = ea_next(width, board);
-    int b = board & ((int) pow((double) 2 , width) - 1);
+    int b = board & ((int)pow((double)2, width) - 1);
     println_binary(width, b);
     GPIO_BSRR(GPIOB) = ~b << 16 | b;
     vTaskDelay(pdMS_TO_TICKS(666));
@@ -111,7 +111,6 @@ static void uart_setup(void) {
   usart_set_flow_control(USART1, USART_FLOWCONTROL_NONE);
   usart_enable(USART1);
 }
-
 
 /*********************************************************************
  * Main program
@@ -147,7 +146,8 @@ int main(void) {
   rcc_periph_clock_enable(RCC_GPIOB);
 
   gpio_mode_setup(GPIOB, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE,
-                  GPIO0 | GPIO1 | GPIO2 | GPIO3 | GPIO4 | GPIO5 | GPIO6 | GPIO7);
+                  GPIO0 | GPIO1 | GPIO2 | GPIO3 | GPIO4 | GPIO5 | GPIO6 |
+                      GPIO7);
 
   uart_setup();
 
