@@ -75,7 +75,7 @@ static int ea_next(int width, int board) {
 }
 
 static void task1(void *args __attribute__((unused))) {
-  static int width = 4;
+  static int width = 8;
   int board = 1 << (width / 2);
   println_binary(width, board);
   GPIO_BSRR(GPIOB) = ~board << 16 | board;
@@ -147,7 +147,7 @@ int main(void) {
   rcc_periph_clock_enable(RCC_GPIOB);
 
   gpio_mode_setup(GPIOB, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE,
-                  GPIO0 | GPIO1 | GPIO2 | GPIO3);
+                  GPIO0 | GPIO1 | GPIO2 | GPIO3 | GPIO4 | GPIO5 | GPIO6 | GPIO7);
 
   uart_setup();
 
