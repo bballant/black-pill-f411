@@ -3,4 +3,6 @@
 *.a
 *.bin
 *.elf
+*.map
 **/rtos/*
+.ccls-cache/
