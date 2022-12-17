@@ -16,6 +16,8 @@
  *  Not all GPIO pins are 5V tolerant, so be careful to
  *  get the wiring correct.
  */
+#include <math.h>
+
 #include <FreeRTOS.h>
 #include <libopencm3/stm32/flash.h>
 #include <libopencm3/stm32/gpio.h>
@@ -25,35 +27,27 @@
 
 #include "uartlib.h"
 
-/*********************************************************************
- * Setup the UART
- *********************************************************************/
-static void uart_setup(void) {
-
-  rcc_periph_clock_enable(RCC_GPIOA);
-  rcc_periph_clock_enable(RCC_USART1);
-
-  // UART TX on PA9 (GPIO_USART1_TX)
-  gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO9);
-
-  gpio_set_af(GPIOA, GPIO_AF7, GPIO9);
-
-  usart_set_baudrate(USART1, 38400);
-  usart_set_databits(USART1, 8);
-  usart_set_stopbits(USART1, USART_STOPBITS_1);
-  usart_set_mode(USART1, USART_MODE_TX);
-  usart_set_parity(USART1, USART_PARITY_NONE);
-  usart_set_flow_control(USART1, USART_FLOWCONTROL_NONE);
-  usart_enable(USART1);
+static char *show_binary(int width, int n) {
+  int count = (sizeof n) * 8;
+  count = width < count ? width : count;
+  static char res[((sizeof n) * 8) + 1];
+  for (int i = 0; i < count; i++) {
+    res[i] = '0' | ((n >> (count - 1 - i)) & 1);
+  }
+  res[count] = 0;
+  return res;
 }
 
+static void println_binary(int width, int n) {
+    uart1_printf("%s\n", show_binary(width, n));
+}
 
 // elementary automation rule 30
 static unsigned int ea_thirty[8] = {
     0, 1, 1, 1, 1, 0, 0, 0,
 };
 
-int ea_next(int width, int board) {
+static int ea_next(int width, int board) {
   int next_board = 0;
   for (int i = 0; i < width; i++) {
     unsigned int neighbor_bits = 0;
@@ -81,20 +75,43 @@ int ea_next(int width, int board) {
 }
 
 static void task1(void *args __attribute__((unused))) {
-  uint16_t x = 0;
-
+  static int width = 4;
+  int board = 1 << (width / 2);
+  println_binary(width, board);
+  GPIO_BSRR(GPIOB) = ~board << 16 | board;
   for (;;) {
     gpio_toggle(GPIOC, GPIO13);
+    // ensure it's correct width
+    board = ea_next(width, board);
+    int b = board & ((int) pow((double) 2 , width) - 1);
+    println_binary(width, b);
+    GPIO_BSRR(GPIOB) = ~b << 16 | b;
     vTaskDelay(pdMS_TO_TICKS(666));
-    if (x++ >= 15) {
-      // resets the inverse
-      GPIO_BSRR(GPIOB) = ~x << 16 | x;
-      x = 0;
-    } else {
-      GPIO_BSRR(GPIOB) = ~x << 16 | x;
-    }
   }
 }
+
+/*********************************************************************
+ * Setup the UART
+ *********************************************************************/
+static void uart_setup(void) {
+
+  rcc_periph_clock_enable(RCC_GPIOA);
+  rcc_periph_clock_enable(RCC_USART1);
+
+  // UART TX on PA9 (GPIO_USART1_TX)
+  gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO9);
+
+  gpio_set_af(GPIOA, GPIO_AF7, GPIO9);
+
+  usart_set_baudrate(USART1, 38400);
+  usart_set_databits(USART1, 8);
+  usart_set_stopbits(USART1, USART_STOPBITS_1);
+  usart_set_mode(USART1, USART_MODE_TX);
+  usart_set_parity(USART1, USART_PARITY_NONE);
+  usart_set_flow_control(USART1, USART_FLOWCONTROL_NONE);
+  usart_enable(USART1);
+}
+
 
 /*********************************************************************
  * Main program
