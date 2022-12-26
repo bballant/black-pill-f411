@@ -4,6 +4,7 @@
 #include <libopencm3/stm32/flash.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
+#include <libopencm3/stm32/spi.h>
 #include <libopencm3/stm32/usart.h>
 #include <task.h>
 
@@ -60,15 +61,13 @@ static void task1(void *args __attribute__((unused))) {
   static int width = 8;
   int board = 1 << (width / 2);
   println_binary(width, board);
-  // GPIO_BSRR(GPIOB) = ~board << 16 | board;
   for (;;) {
     gpio_toggle(GPIOC, GPIO13);
     // ensure it's correct width
     board = ea_next(width, board);
     int b = board & ((int)pow((double)2, width) - 1);
     println_binary(width, b);
-    // GPIO_BSRR(GPIOB) = ~b << 16 | b;
-    vTaskDelay(pdMS_TO_TICKS(board * 10));
+    vTaskDelay(pdMS_TO_TICKS(board * 8));
   }
 }
 
@@ -82,7 +81,7 @@ static void uart_setup(void) {
 
   gpio_set_af(GPIOA, GPIO_AF7, GPIO9);
 
-  usart_set_baudrate(USART1, 38400);
+  usart_set_baudrate(USART1, 115200);
   usart_set_databits(USART1, 8);
   usart_set_stopbits(USART1, USART_STOPBITS_1);
   usart_set_mode(USART1, USART_MODE_TX);
@@ -112,20 +111,81 @@ static void clock_setup(void) {
   rcc_clock_setup_pll(&clock_scale);
 }
 
+/*
+ * OLED STUFF
+ */
+
+void oled_command(uint8_t byte) {
+  gpio_clear(GPIOA, GPIO10);
+  spi_enable(SPI1);
+  spi_xfer(SPI1, byte);
+  spi_disable(SPI1);
+}
+
+static void oled_reset(void) {
+  gpio_clear(GPIOA, GPIO11);
+  //vTaskDelay(1);
+  for (int i =0; i < 1000000000; i++)
+    ;
+  gpio_set(GPIOA, GPIO11);
+}
+
+static void oled_init(void) {
+  static uint8_t cmds[] = {0xAE, 0x00, 0x10, 0x40, 0x81, 0xCF, 0xA1, 0xA6,
+                           0xA8, 0x3F, 0xD3, 0x00, 0xD5, 0x80, 0xD9, 0xF1,
+                           0xDA, 0x12, 0xDB, 0x40, 0x8D, 0x14, 0xAF, 0xFF};
+
+  gpio_clear(GPIOC, GPIO13);
+  oled_reset();
+  for (unsigned ux = 0; cmds[ux] != 0xFF; ++ux)
+    oled_command(cmds[ux]);
+  gpio_set(GPIOC, GPIO13);
+}
+
 /*********************************************************************
  * Main program
  *********************************************************************/
 int main(void) {
   clock_setup();
+  uart_setup();
+  // SPI
+  rcc_periph_clock_enable(RCC_SPI1);
   // PC13:
   rcc_periph_clock_enable(RCC_GPIOC);
   gpio_mode_setup(GPIOC, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO13);
+  //
   // PB0:
-  rcc_periph_clock_enable(RCC_GPIOB);
-  gpio_mode_setup(GPIOB, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE,
-                  GPIO0 | GPIO1 | GPIO2 | GPIO3 | GPIO4 | GPIO5 | GPIO6 |
-                      GPIO7);
-  uart_setup();
+  rcc_periph_clock_enable(RCC_GPIOA);
+  // PA10 -> D/C; PA11 -> RES
+  gpio_mode_setup(GPIOA, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO10 | GPIO11);
+  gpio_set_output_options(GPIOA, GPIO_OTYPE_PP, GPIO_OSPEED_2MHZ, GPIO10 | GPIO11);
+  // activate OLED reset
+  gpio_clear(GPIOA, GPIO11);
+	//
+	// PA7=MOSI, PA5=SCK, PA4=NSS/CS
+  gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO4|GPIO5|GPIO7);
+  gpio_set_af(GPIOA, GPIO_AF5, GPIO4 | GPIO5 | GPIO7);
+  gpio_set_output_options(GPIOA, GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ,
+                          GPIO4 | GPIO5 | GPIO7);
+
+  spi_reset(SPI1);
+
+	spi_init_master(
+		SPI1,
+    SPI_CR1_BAUDRATE_FPCLK_DIV_256,
+    SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
+		SPI_CR1_CPHA_CLK_TRANSITION_1,
+    SPI_CR1_DFF_8BIT,
+    SPI_CR1_MSBFIRST
+	);
+	spi_disable_software_slave_management(SPI1);
+	spi_enable_ss_output(SPI1);
+
+  oled_init();
+
+  // gpio_mode_setup(GPIOB, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE,
+  //                 GPIO0 | GPIO1 | GPIO2 | GPIO3 | GPIO4 | GPIO5 | GPIO6 |
+  //                     GPIO7);
   xTaskCreate(task1, "task1", 100, NULL, configMAX_PRIORITIES - 1, NULL);
   vTaskStartScheduler();
 
