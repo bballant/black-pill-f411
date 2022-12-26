@@ -21,6 +21,22 @@ static char *show_binary(int width, int n) {
   return res;
 }
 
+/*
+This is how to use miniprintf from libwwg
+
+void my_putc(char ch) { putchar(ch); }
+
+int my_printf(const char *format, ...) {
+  va_list args;
+  int rc;
+
+  va_start(args, format);
+  rc = mini_vprintf_cooked(my_putc, format, args);
+  va_end(args);
+  return rc;
+}
+ */
+
 static void println_binary(int width, int n) {
   uart1_printf("%s\n", show_binary(width, n));
 }
