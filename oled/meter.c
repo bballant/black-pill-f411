@@ -3,8 +3,6 @@
 // Date: Wed Dec  6 22:51:32 2017   (C) ve3wwg@gmail.com
 ///////////////////////////////////////////////////////////////////////
 
-#include <math.h>
-#include <string.h>
 
 #include "ugui.h"
 #include "meter.h"

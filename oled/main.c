@@ -17,8 +17,6 @@
  *	PB10	D/C
  *	PB11	/Reset
  */
-#include <ctype.h>
-#include <string.h>
 
 #include "intelhex.h"
 //#include "mcuio.h"
@@ -82,7 +80,7 @@ static void oled_init(void) {
  */
 static void monitor_task(void *arg __attribute((unused))) {
   struct Meter m1;
-  float v = 1.3;
+  float v = 2.5;
 
 
   oled_init();
