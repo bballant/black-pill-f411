@@ -3,6 +3,7 @@
 // Date: Wed Dec  6 22:51:32 2017   (C) ve3wwg@gmail.com
 ///////////////////////////////////////////////////////////////////////
 
+#include "math.h"
 
 #include "ugui.h"
 #include "meter.h"
@@ -14,41 +15,41 @@
 
 static UG_GUI gui;
 static float Pi = 3.14159265;
-static int siz = 128*64/8;
+//static int siz = 128*64/8;
 static uint8_t pixmap[128*64/8];
 static uint8_t dummy;
 
 // elementary automation rule 30
-static unsigned int ea_thirty[8] = {
-    0, 1, 1, 1, 1, 0, 0, 0,
-};
+//static unsigned int ea_thirty[8] = {
+//    0, 1, 1, 1, 1, 0, 0, 0,
+//};
 
-static int ea_next(int width, int board) {
-  int next_board = 0;
-  for (int i = 0; i < width; i++) {
-    unsigned int neighbor_bits = 0;
-    if (i == 0) {
-      // left bit = word's rightmost bit
-      unsigned int left_bit = (board & 1) << 2; // [100]
-      // shift next two bits all the way to right and mask
-      unsigned int right_bits = (board >> (width - i - 2)) & 3;
-      neighbor_bits = left_bit | right_bits;
-    } else if (i == width - 1) {
-      // right bit = word's leftmost bit
-      unsigned int right_bit = (board >> (width - 1)) & 1;
-      unsigned int left_bits = (board & 3) << 1;
-      neighbor_bits = left_bits | right_bit;
-    } else {
-      // neighbor_bits
-      neighbor_bits = (board >> (width - i - 2)) & 7;
-    }
-    // ensure less than 8
-    neighbor_bits = neighbor_bits & 7;
-    unsigned int c = ea_thirty[neighbor_bits];
-    next_board = (next_board << 1) | c;
-  }
-  return next_board;
-}
+//static int ea_next(int width, int board) {
+//  int next_board = 0;
+//  for (int i = 0; i < width; i++) {
+//    unsigned int neighbor_bits = 0;
+//    if (i == 0) {
+//      // left bit = word's rightmost bit
+//      unsigned int left_bit = (board & 1) << 2; // [100]
+//      // shift next two bits all the way to right and mask
+//      unsigned int right_bits = (board >> (width - i - 2)) & 3;
+//      neighbor_bits = left_bit | right_bits;
+//    } else if (i == width - 1) {
+//      // right bit = word's leftmost bit
+//      unsigned int right_bit = (board >> (width - 1)) & 1;
+//      unsigned int left_bits = (board & 3) << 1;
+//      neighbor_bits = left_bits | right_bit;
+//    } else {
+//      // neighbor_bits
+//      neighbor_bits = (board >> (width - i - 2)) & 7;
+//    }
+//    // ensure less than 8
+//    neighbor_bits = neighbor_bits & 7;
+//    unsigned int c = ea_thirty[neighbor_bits];
+//    next_board = (next_board << 1) | c;
+//  }
+//  return next_board;
+//}
 
 static uint8_t *
 to_pixel(short x,short y,unsigned *bitno) {
